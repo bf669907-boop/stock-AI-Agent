@@ -3,23 +3,23 @@ name: Daily Stock Analysis
 on:
   schedule:
     - cron: '30 15 * * 0-4'
-  workflow_dispatch: # שים לב: זה חייב להיות באותו קו של schedule
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
 
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: '3.13'
+          python-version: '3.9'
 
       - name: Install dependencies
         run: |
-          pip install -r requirements.txt
+          pip install pandas yfinance requests
 
       - name: Run script
         env:
