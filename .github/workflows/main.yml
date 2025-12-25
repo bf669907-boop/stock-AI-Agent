@@ -2,7 +2,7 @@ name: Daily Stock Analysis
 
 on:
   schedule:
-    - cron: '30 15 * * 0-4'
+    - cron: '30 15 * * 1-5'
   workflow_dispatch:
 
 jobs:
@@ -15,7 +15,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: '3.9'
+          python-version: '3.11'
 
       - name: Install dependencies
         run: |
