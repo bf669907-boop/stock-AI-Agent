@@ -1,3 +1,6 @@
 pandas
 yfinance
 requests
+io
+smtplib
+os
