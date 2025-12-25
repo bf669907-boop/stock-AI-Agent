@@ -1,0 +1,29 @@
+name: Daily Stock Analysis
+
+on:
+  schedule:
+    # מריץ את הקוד בכל יום בימי חול בשעה 15:30 UTC (שזה 17:30 שעון ישראל)
+    - cron: '30 16 * * 1-5'
+  workflow_dispatch: # מאפשר להריץ גם ידנית בלחיצת כפתור
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.13'
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Run script
+        env:
+          EMAIL_USER: ${{ secrets.EMAIL_USER }}
+          EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
+        run: python main.py
