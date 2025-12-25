@@ -3,7 +3,7 @@ name: Daily Stock Analysis
 on:
   schedule:
     # מריץ את הקוד בכל יום בימי חול בשעה 15:30 UTC (שזה 17:30 שעון ישראל)
-    - cron: '30 16 * * 1-5'
+   	 - cron: '30 16 * * 1-5'
   workflow_dispatch: # מאפשר להריץ גם ידנית בלחיצת כפתור
 
 jobs:
