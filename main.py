@@ -7,6 +7,11 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 import os
 
+# הגדרת User-Agent למניעת חסימות מצד Yahoo Finance
+session = requests.Session()
+session.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+
+
 # --- הגדרות אימייל (מלא את הפרטים שלך) ---
 EMAIL_ADDRESS = os.environ.get('EMAIL_USER')
 EMAIL_PASSWORD = os.environ.get('EMAIL_PASS')
@@ -77,14 +82,18 @@ def analyze_portfolio(symbols):
         ticker = f"{sym}.TA" if not sym.endswith(".TA") else sym
 
         try:
-            df = yf.download(ticker, period="12d", progress=False)
+            df = yf.download(ticker, period="15d", session=session, progress=False)
+            # ניקוי שורות ריקות במידה וYahoo החזירה NaN
+            df = df.dropna(subset=['Close'])
 
-            if df.empty or len(df) < 8:
+            if df.empty or len(df) < 7:
+                print(f"אין מספיק נתונים תקינים עבור {ticker}")
                 continue
 
-            # 1. חישוב אחוז שינוי שבועי
+            # קבלת המחירים מתוך הנתונים הנקיים
             price_now = df['Close'].iloc[-1]
             price_7_days_ago = df['Close'].iloc[-7]
+
             change_series = ((price_now - price_7_days_ago) / price_7_days_ago) * 100
             pct_change = float(change_series.item())
 

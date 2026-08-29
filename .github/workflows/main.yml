@@ -19,7 +19,7 @@ jobs:
 
       - name: Install dependencies
         run: |
-          pip install pandas yfinance requests
+          pip install --upgrade pandas yfinance requests
 
       - name: Run script
         env:
