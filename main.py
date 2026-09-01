@@ -1,3 +1,4 @@
+
 import pandas as pd
 import yfinance as yf
 import requests
@@ -75,36 +76,54 @@ def get_stocks_from_sheets(sheets_url):
         return []
 
 
+
+
 def analyze_portfolio(symbols):
     results = []
+
+    # הגדרת סשן עם User-Agent כדי למנוע חסימת בוטים מ-GitHub Actions
+    session = requests.Session()
+    session.headers[
+        'User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
 
     for sym in symbols:
         ticker = f"{sym}.TA" if not sym.endswith(".TA") else sym
 
         try:
+            # הורדת נתונים מורחבת (15 ימים)
             df = yf.download(ticker, period="15d", session=session, progress=False)
-            # ניקוי שורות ריקות במידה וYahoo החזירה NaN
-            df = df.dropna(subset=['Close'])
 
-            if df.empty or len(df) < 7:
-                print(f"אין מספיק נתונים תקינים עבור {ticker}")
+            # אם התקבל DataFrame ריק
+            if df.empty:
+                print(f"לא נשלפו נתונים עבור {ticker}")
                 continue
 
-            # קבלת המחירים מתוך הנתונים הנקיים
-            price_now = df['Close'].iloc[-1]
-            price_7_days_ago = df['Close'].iloc[-7]
+            # טיפול במבנה עמודות חדש של yfinance (לפעמים העמודות הן MultiIndex)
+            if isinstance(df.columns, pd.MultiIndex):
+                close_series = df['Close'][ticker] if ticker in df['Close'] else df['Close'].iloc[:, 0]
+            else:
+                close_series = df['Close']
 
-            change_series = ((price_now - price_7_days_ago) / price_7_days_ago) * 100
-            pct_change = float(change_series.item())
+            # ניקוי ערכי NaN
+            close_series = close_series.dropna()
 
-            # 2. בדיקת רצף עליות של 3 ימים (במהלך ה-7 האחרונים)
-            df['daily_up'] = df['Close'].diff() > 0
-            streak_check = df['daily_up'].tail(7).rolling(window=3).apply(lambda x: x.all()).max()
-            is_streak = streak_check == 1
+            if len(close_series) < 7:
+                print(f"אין מספיק ימי מסחר תקינים עבור {ticker} (נמצאו {len(close_series)})")
+                continue
 
-            # --- בניית הסטטוס/קטגוריה עם סימון מיוחד ---
+            # שליפת מחירים
+            price_now = float(close_series.iloc[-1])
+            price_7_days_ago = float(close_series.iloc[-7])
+
+            # חישוב אחוז שינוי
+            pct_change = ((price_now - price_7_days_ago) / price_7_days_ago) * 100
+
+            # בדיקת רצף עליות של 3 ימים בתוך ה-7 האחרונים
+            daily_diff = close_series.tail(8).diff() > 0
+            is_up_streak = daily_diff.tail(7).rolling(window=3).apply(lambda x: x.all()).max() == 1
+
+            # סטטוס ואימוג'ים
             status_parts = []
-
             if pct_change > 5:
                 status_parts.append("📈 עליה מעל 5%")
             elif pct_change < -5:
@@ -112,21 +131,20 @@ def analyze_portfolio(symbols):
             else:
                 status_parts.append("ניטרלי")
 
-            if is_streak:
+            if is_up_streak:
                 status_parts.append("🔥 רצף 3 ימי עליות!")
 
-            # חיבור הסטטוסים למחרוזת אחת
             final_status = " | ".join(status_parts)
 
             results.append({
                 'מניה': sym,
                 'שינוי שבועי': f"{pct_change:.2f}%",
                 'סטטוס': final_status,
-                'רצף 3 ימים': "כן ✅" if is_streak else "לא"
+                'רצף 3 ימים': "כן ✅" if is_up_streak else "לא"
             })
 
         except Exception as e:
-            print(f"שגיאה בניתוח {sym}: {e}")
+            print(f"שגיאה בניתוח המניה {sym}: {e}")
 
     return pd.DataFrame(results)
 
